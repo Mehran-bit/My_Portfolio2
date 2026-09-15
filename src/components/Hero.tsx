@@ -9,15 +9,28 @@ export default function Hero() {
   const isDark = theme === 'dark';
 
   const scrollToSection = (id: string) => {
-    const el = document.querySelector(id);
+    if (id === '#hero' || id === 'hero') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    const cleanId = id.replace('#', '');
+    const el = document.getElementById(cleanId);
     if (el) {
-      const topOffset = 80;
-      const elementPosition = el.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - topOffset;
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
+      try {
+        el.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      } catch {
+        const topOffset = 80;
+        const elementPosition = el.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - topOffset;
+        window.scrollTo({
+          top: Math.max(0, offsetPosition),
+          behavior: 'smooth'
+        });
+      }
     }
   };
 

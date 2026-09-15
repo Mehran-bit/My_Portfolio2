@@ -31,30 +31,53 @@ export default function Navbar({ activeSection }: NavbarProps) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleNavClick = (e: MouseEvent<HTMLAnchorElement>, href: string) => {
-    e.preventDefault();
-    setMobileMenuOpen(false);
-    const targetElement = document.querySelector(href);
-    if (targetElement) {
+  const navigateToSection = (href: string) => {
+    if (href === '#hero' || href === '#') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    const targetId = href.replace('#', '');
+    const targetElement = document.getElementById(targetId);
+    if (!targetElement) return;
+
+    // Use smooth scrollIntoView (supported natively and respects scroll-margin-top)
+    try {
+      targetElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    } catch {
       const topOffset = 80;
       const elementPosition = targetElement.getBoundingClientRect().top;
       const offsetPosition = elementPosition + window.pageYOffset - topOffset;
       window.scrollTo({
-        top: offsetPosition,
+        top: Math.max(0, offsetPosition),
         behavior: 'smooth'
       });
     }
   };
 
+  const handleNavClick = (e: MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault();
+    setMobileMenuOpen(false);
+
+    // On mobile devices, executing scroll after a tiny timeout prevents touch release
+    // and drawer unmount from aborting the browser's programmatic smooth scroll
+    setTimeout(() => {
+      navigateToSection(href);
+    }, 100);
+  };
+
   return (
     <header
       id="main-navbar"
-      className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled
           ? isDark
-            ? 'py-3.5 bg-zinc-950/85 backdrop-blur-xl border-b border-zinc-800/80 shadow-[0_10px_30px_rgba(0,0,0,0.5)]'
-            : 'py-3.5 bg-white/90 backdrop-blur-xl border-b border-zinc-200/90 shadow-sm'
-          : 'py-6 bg-transparent'
+            ? 'py-3.5 bg-zinc-950/90 backdrop-blur-xl border-b border-zinc-800/80 shadow-[0_10px_30px_rgba(0,0,0,0.5)]'
+            : 'py-3.5 bg-white/95 backdrop-blur-xl border-b border-zinc-200/90 shadow-sm'
+          : 'py-5 bg-transparent'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -66,7 +89,9 @@ export default function Navbar({ activeSection }: NavbarProps) {
             onClick={(e) => {
               e.preventDefault();
               setMobileMenuOpen(false);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              setTimeout(() => {
+                navigateToSection('#hero');
+              }, 100);
             }}
             aria-label="Mehran Ali - Return to Home Page"
             title="Click to go to Home Page"
@@ -242,10 +267,10 @@ export default function Navbar({ activeSection }: NavbarProps) {
               type="button"
               onClick={toggleTheme}
               aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
-              className={`p-2 rounded-xl border cursor-pointer ${
+              className={`min-w-[42px] min-h-[42px] p-2.5 rounded-xl border flex items-center justify-center cursor-pointer transition-colors ${
                 isDark
-                  ? 'bg-zinc-900 text-amber-400 border-zinc-800'
-                  : 'bg-zinc-100 text-zinc-800 border-zinc-300'
+                  ? 'bg-zinc-900 text-amber-400 border-zinc-800 active:bg-zinc-800'
+                  : 'bg-zinc-100 text-zinc-800 border-zinc-300 active:bg-zinc-200'
               }`}
             >
               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -255,10 +280,10 @@ export default function Navbar({ activeSection }: NavbarProps) {
               id="mobile-menu-toggle"
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className={`p-2 rounded-xl border focus:outline-none ${
+              className={`min-w-[42px] min-h-[42px] p-2.5 rounded-xl border flex items-center justify-center focus:outline-none transition-colors cursor-pointer ${
                 isDark
-                  ? 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white'
-                  : 'bg-zinc-100 border-zinc-300 text-zinc-700 hover:text-zinc-900'
+                  ? 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white active:bg-zinc-800'
+                  : 'bg-zinc-100 border-zinc-300 text-zinc-700 hover:text-zinc-900 active:bg-zinc-200'
               }`}
               aria-label="Toggle Navigation Menu"
             >
@@ -268,6 +293,22 @@ export default function Navbar({ activeSection }: NavbarProps) {
         </div>
       </div>
 
+      {/* Mobile Menu Backdrop */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            key="mobile-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setMobileMenuOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm -z-10 md:hidden"
+            aria-hidden="true"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Mobile Menu Drawer */}
       <AnimatePresence>
         {mobileMenuOpen && (
@@ -276,9 +317,9 @@ export default function Navbar({ activeSection }: NavbarProps) {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25 }}
-            className={`md:hidden overflow-hidden backdrop-blur-2xl border-b shadow-2xl ${
-              isDark ? 'bg-zinc-950/95 border-zinc-800' : 'bg-white/95 border-zinc-200'
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            className={`md:hidden overflow-hidden max-h-[calc(100vh-5rem)] overflow-y-auto backdrop-blur-2xl border-b shadow-2xl ${
+              isDark ? 'bg-zinc-950/98 border-zinc-800/90' : 'bg-white/98 border-zinc-200/90'
             }`}
           >
             <div className="px-5 pt-3 pb-6 space-y-2">
@@ -288,16 +329,17 @@ export default function Navbar({ activeSection }: NavbarProps) {
                 return (
                   <a
                     key={item.label}
+                    id={`mobile-nav-${sectionId}`}
                     href={item.href}
                     onClick={(e) => handleNavClick(e, item.href)}
-                    className={`block px-4 py-3 rounded-xl text-base font-medium transition-colors ${
+                    className={`block px-4 py-3.5 rounded-xl text-base font-semibold transition-all cursor-pointer select-none active:scale-[0.98] ${
                       isActive
                         ? isDark
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                          : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
+                          : 'bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm'
                         : isDark
-                          ? 'text-zinc-300 hover:bg-zinc-900 hover:text-white'
-                          : 'text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900'
+                          ? 'text-zinc-300 hover:bg-zinc-900/90 hover:text-white active:bg-zinc-800'
+                          : 'text-zinc-700 hover:bg-zinc-100/90 hover:text-zinc-900 active:bg-zinc-200'
                     }`}
                   >
                     {item.label}
@@ -306,9 +348,10 @@ export default function Navbar({ activeSection }: NavbarProps) {
               })}
               <div className="pt-2">
                 <a
+                  id="mobile-nav-cta"
                   href="#contact"
                   onClick={(e) => handleNavClick(e, '#contact')}
-                  className="w-full py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 shadow-lg shadow-emerald-600/30"
+                  className="w-full py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 font-semibold text-white bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 shadow-lg shadow-emerald-600/30 active:scale-[0.98] transition-transform cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4 text-emerald-200" />
                   Get in Touch
